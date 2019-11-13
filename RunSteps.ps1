@@ -5,8 +5,8 @@ if(-not(Test-Path $srcDir)){
     # create new library
     dotnet new classlib -o src -n AutoSemVerLib
     rm "$srcDir/Class1.cs"
-    git tag 0.0.1
-
+    git tag v0.0.1
+    git push --tags
     dotnet tool install -g synver
 }
 
