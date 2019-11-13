@@ -12,13 +12,28 @@ function WriteCurrentApiToFile {
     Invoke-expression -command $cmd
 }
 
+function GetCommitMessagesSinceLastTag {
+    param($tagVersionRegex)
+
+    $tags = git tag
+    Write-Debug "All tags: $tags"
+    $filtered = $tags | Where-Object { $_ -match $tagVersionRegex }
+    Write-Debug "Filtered tags: $filtered"
+    $lastTag = $filtered | Select-Object -Last 1
+    $commitsSinceTagCmd = "git log $lastTag..head --oneline"
+    Write-Debug "Running command '$commitsSinceTagCmd'"
+    $commits = Invoke-expression -command $commitsSinceTagCmd
+    
+}
+
 function RunAutoSemVer {
     param(
         $projFile,
         $builtLib,
         $semanticChangesFile,
         $currentApiFile,
-        $documentationFile
+        $documentationFile,
+        $tagVersionRegex
     )
 
     $projPath = GetPath $projFile
@@ -32,12 +47,15 @@ Project file          - $projPath
 Built lib path        - $builtLibPath
 Semantic changes file - $semanticChangesPath
 Current api lson file - $currentApiPath
-Documentation file    - $documentationPath"
+Documentation file    - $documentationPath
+Tag regex             - $tagVersionRegex"
 
     if(-not(Test-Path $builtLibPath)){
         Write-Error "Dll not present at '$builtLibPath'. Can't continue."
         exit 1
     }
+
+    GetCommitMessagesSinceLastTag -tagVersionRegex $tagVersionRegex
     
     if(-not(Test-Path $currentApiPath)){
         Write-Error "Previous api file not present at '$currentApiPath'. Can't find version diff.
@@ -55,6 +73,6 @@ RunAutoSemVer `
     -builtLib            "$versioningDir/../src/bin/Debug/netstandard2.0/AutoSemVerLib.dll" `
     -semanticChangesFile "$versioningDir/SemanticChanges.json" `
     -currentApiFile      "$versioningDir/AutoSemVerLibApi.lson" `
-    -documentationFile   "$versioningDir/Changes.md"
-
+    -documentationFile   "$versioningDir/Changes.md" `
+    -tagVersionRegex     "v(?<Major>`\d+).(?<Minor>`\d+).(?<Fix>`\d+)"
 
