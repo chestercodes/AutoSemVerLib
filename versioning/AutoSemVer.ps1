@@ -2,19 +2,60 @@ function GetPath($p){
     return [IO.Path]::GetFullPath($p)
 }
 
+function WriteCurrentApiToFile {
+    param(
+        $builtLibPath,
+        $currentApiPath
+    )
+    $cmd = "synver --decompile --surface-of $builtLibPath --output $currentApiPath"
+    Write-Debug "Running cmd '$cmd'"
+    & $cmd
+}
+
+function RunAutoSemVer {
+    param(
+        $projFile,
+        $builtLib,
+        $semanticChangesFile,
+        $currentApiFile,
+        $documentationFile
+    )
+
+    $projPath = GetPath $projFile
+    $builtLibPath = GetPath $builtLib
+    $semanticChangesPath = GetPath $semanticChangesFile
+    $currentApiPath = GetPath $currentApiFile
+    $documentationPath = GetPath $documentationFile
+
+    Write-Host "Running auto SemVer with:
+Project file          - $projPath
+Built lib path        - $builtLibPath
+Semantic changes file - $semanticChangesPath
+Current api lson file - $currentApiPath
+Documentation file    - $documentationPath"
+
+    if(-not(Test-Path $builtLibPath)){
+        Write-Error "Dll not present at '$builtLibPath'. Can't continue."
+        exit 1
+    }
+    
+    if(-not(Test-Path $currentApiPath)){
+        Write-Error "Previous api file not present at '$currentApiPath'. Can't find version diff.
+Write file to current location and tag with current version."
+        synver 
+        exit 1
+    }
+
+    if()
+}
+
 $versioningDir = "$PSScriptRoot"
-$configPath = "$versioningDir/AutoSemVer.json"
-$autoSemVerJson = Get-Content $configPath | ConvertFrom-Json
 
-$projPath = GetPath "$versioningDir/$($autoSemVerJson.projFile)"
-$builtLibPath = GetPath "$versioningDir/$($autoSemVerJson.builtLib)"
-$semanticChangesPath = GetPath "$versioningDir/$($autoSemVerJson.semanticChangesFile)"
-$currentApiPath = GetPath "$versioningDir/$($autoSemVerJson.currentApiFile)"
-$documentationPath = GetPath "$versioningDir/$($autoSemVerJson.documentationFile)"
+RunAutoSemVer `
+    -projFile            "$versioningDir/../src/AutoSemVerLib.csproj" `
+    -builtLib            "$versioningDir/../src/bin/Debug/netstandard2.0/AutoSemVerLib.dll" `
+    -semanticChangesFile "$versioningDir/SemanticChanges.json" `
+    -currentApiFile      "$versioningDir/AutoSemVerLibApi.lson" `
+    -documentationFile   "$versioningDir/Changes.md"
 
-Write-Host "Project file          - $projPath"
-Write-Host "Built lib path        - $builtLibPath"
-Write-Host "Semantic changes file - $semanticChangesPath"
-Write-Host "Current api lson file - $currentApiPath"
-Write-Host "Documentation file    - $documentationPath"
 
