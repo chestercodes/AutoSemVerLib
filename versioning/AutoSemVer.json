@@ -1,7 +1,0 @@
-{
-    "projFile": "../src/AutoSemVerLib.csproj",
-    "builtLib": "../src/bin/Debug/netstandard2.0/AutoSemVerLib.dll",
-    "semanticChangesFile": "./SemanticChanges.json",
-    "currentApiFile": "./AutoSemVerLibApi.lson",
-    "documentationFile": "./Changes.md"
-}

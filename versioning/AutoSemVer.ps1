@@ -9,7 +9,7 @@ function WriteCurrentApiToFile {
     )
     $cmd = "synver --decompile --surface-of $builtLibPath --output $currentApiPath"
     Write-Debug "Running cmd '$cmd'"
-    & $cmd
+    Invoke-expression -command $cmd
 }
 
 function RunAutoSemVer {
@@ -42,11 +42,10 @@ Documentation file    - $documentationPath"
     if(-not(Test-Path $currentApiPath)){
         Write-Error "Previous api file not present at '$currentApiPath'. Can't find version diff.
 Write file to current location and tag with current version."
-        synver 
+        WriteCurrentApiToFile -builtLibPath $builtLibPath -currentApiPath $currentApiPath
         exit 1
     }
 
-    if()
 }
 
 $versioningDir = "$PSScriptRoot"
