@@ -8,29 +8,34 @@ function WriteCurrentApiToFile {
         $currentApiPath
     )
     $cmd = "synver --decompile --surface-of $builtLibPath --output $currentApiPath"
-    Write-Debug "Running cmd '$cmd'"
+    Write-Verbose "Running cmd '$cmd'"
     Invoke-expression -command $cmd
+}
+
+function GetLatestTag {
+    param($tagVersionRegex)
+    $tags = git tag
+    Write-Verbose "All tags: $tags"
+    $filtered = $tags | Where-Object { $_ -match $tagVersionRegex }
+    Write-Verbose "Filtered tags: $filtered"
+    $lastTag = $filtered | Select-Object -Last 1
+    Write-Host "Last tag: $lastTag"
+    return $lastTag
 }
 
 function GetCommitMessagesSinceLastTag {
     param($tagVersionRegex)
-
-    $tags = git tag
-    Write-Debug "All tags: $tags"
-    $filtered = $tags | Where-Object { $_ -match $tagVersionRegex }
-    Write-Debug "Filtered tags: $filtered"
-    $lastTag = $filtered | Select-Object -Last 1
+    $lastTag = GetLatestTag -tagVersionRegex $tagVersionRegex
     $commitsSinceTagCmd = "git log $lastTag..head --oneline"
-    Write-Debug "Running command '$commitsSinceTagCmd'"
+    Write-Verbose "Running command '$commitsSinceTagCmd'"
     $commits = Invoke-expression -command $commitsSinceTagCmd
-    
+    return $commits
 }
 
 function RunAutoSemVer {
     param(
         $projFile,
         $builtLib,
-        $semanticChangesFile,
         $currentApiFile,
         $documentationFile,
         $tagVersionRegex
@@ -38,14 +43,12 @@ function RunAutoSemVer {
 
     $projPath = GetPath $projFile
     $builtLibPath = GetPath $builtLib
-    $semanticChangesPath = GetPath $semanticChangesFile
     $currentApiPath = GetPath $currentApiFile
     $documentationPath = GetPath $documentationFile
 
     Write-Host "Running auto SemVer with:
 Project file          - $projPath
 Built lib path        - $builtLibPath
-Semantic changes file - $semanticChangesPath
 Current api lson file - $currentApiPath
 Documentation file    - $documentationPath
 Tag regex             - $tagVersionRegex"
@@ -55,13 +58,18 @@ Tag regex             - $tagVersionRegex"
         exit 1
     }
 
-    GetCommitMessagesSinceLastTag -tagVersionRegex $tagVersionRegex
-    
+    $commits = GetCommitMessagesSinceLastTag -tagVersionRegex $tagVersionRegex
+    if($commits.Length -eq 0){
+        Write-host "No commits since last version tag."
+        exit 0
+    }
+    Write-Verbose " Commits found: $commits"
+
     if(-not(Test-Path $currentApiPath)){
-        Write-Error "Previous api file not present at '$currentApiPath'. Can't find version diff.
+        Write-Warning "Previous api file not present at '$currentApiPath'. Can't find version diff.
 Write file to current location and tag with current version."
         WriteCurrentApiToFile -builtLibPath $builtLibPath -currentApiPath $currentApiPath
-        exit 1
+        return
     }
 
 }
@@ -71,7 +79,6 @@ $versioningDir = "$PSScriptRoot"
 RunAutoSemVer `
     -projFile            "$versioningDir/../src/AutoSemVerLib.csproj" `
     -builtLib            "$versioningDir/../src/bin/Debug/netstandard2.0/AutoSemVerLib.dll" `
-    -semanticChangesFile "$versioningDir/SemanticChanges.json" `
     -currentApiFile      "$versioningDir/AutoSemVerLibApi.lson" `
     -documentationFile   "$versioningDir/Changes.md" `
     -tagVersionRegex     "v(?<Major>`\d+).(?<Minor>`\d+).(?<Fix>`\d+)"
