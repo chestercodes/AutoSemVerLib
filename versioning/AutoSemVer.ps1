@@ -1,3 +1,16 @@
+# If dll file doesn't exist then stop
+
+# get last version, bail if doesnt exist
+
+# get commits since last version, if none then stop
+
+# if api file doesnt exist then find new version 
+# from semantic changes and write current api to file
+
+# if api file exists then find syntactic diff in version and combine
+# with semantic version diff to find biggest and next version
+
+
 function GetPath($p){
     return [IO.Path]::GetFullPath($p)
 }
@@ -24,9 +37,8 @@ function GetLatestTag {
 }
 
 function GetCommitMessagesSinceLastTag {
-    param($tagVersionRegex)
-    $lastTag = GetLatestTag -tagVersionRegex $tagVersionRegex
-    $commitsSinceTagCmd = "git log $lastTag..head --oneline"
+    param($lastVersion)
+    $commitsSinceTagCmd = "git log $lastVersion..head --oneline"
     Write-Verbose "Running command '$commitsSinceTagCmd'"
     $commits = Invoke-expression -command $commitsSinceTagCmd
     return $commits
@@ -58,7 +70,9 @@ Tag regex             - $tagVersionRegex"
         exit 1
     }
 
-    $commits = GetCommitMessagesSinceLastTag -tagVersionRegex $tagVersionRegex
+    $lastVersion = GetLatestTag -tagVersionRegex $tagVersionRegex
+    
+    $commits = GetCommitMessagesSinceLastTag -lastVersion $lastVersion
     if($commits.Length -eq 0){
         Write-host "No commits since last version tag."
         exit 0
@@ -66,8 +80,9 @@ Tag regex             - $tagVersionRegex"
     Write-Verbose " Commits found: $commits"
 
     if(-not(Test-Path $currentApiPath)){
-        Write-Warning "Previous api file not present at '$currentApiPath'. Can't find version diff.
-Write file to current location and tag with current version."
+        Write-Warning "Previous api file not present at '$currentApiPath'. 
+Can't find version diff with syntactic difference, use just semantic differences.
+Write file to current location for next run."
         WriteCurrentApiToFile -builtLibPath $builtLibPath -currentApiPath $currentApiPath
         return
     }
