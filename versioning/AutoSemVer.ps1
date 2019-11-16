@@ -94,11 +94,23 @@ function GetSymanticDifferenceFromCommitInfos {
     [CmdletBinding()]
     param($commitInfos)
     $majorCommits = $commitInfos | Where-Object { $_.ChangeType -eq "Major" }
-    if($majorCommits.Length -gt 0){
+    if($majorCommits.Length -gt 0 -or $majorCommits -ne $null){
         return "Major"
     }
     $minorCommits = $commitInfos | Where-Object { $_.ChangeType -eq "Minor" }
-    if($minorCommits.Length -gt 0){
+    if($minorCommits.Length -gt 0 -or $minorCommits -ne $null){
+        return "Minor"
+    }
+    return "Patch"
+}
+
+function GetCombinedDiff {
+    [CmdletBinding()]
+    param($syntacticDiff, $semanticDiff)
+    if($syntacticDiff -eq "Major" -or $synmanticDiff -eq "Major"){
+        return "Major"
+    }
+    if($syntacticDiff -eq "Minor" -or $synmanticDiff -eq "Minor"){
         return "Minor"
     }
     return "Patch"
@@ -136,19 +148,20 @@ Tag regex             - $tagVersionRegex"
     $commits = GetCommitInfoSinceLastTag -lastVersion $lastVersion
     if($commits.Length -eq 0){
         Write-Verbose "No commits since last version tag."
-        exit 0
+        exit 1
     }
     Write-Verbose " Commits found: $commits"
     
     # save semantic text differences to file, only commits that are feat etc
     
     # find the semantic biggest difference
+    $semanticDiff = GetSymanticDifferenceFromCommitInfos $commits
 
     # find the syntactic biggest difference if file exists using the --magnitude
     $syntacticDiff = GetSyntacticDifferenceOrPatch `
                         -currentApiPath $currentApiPath `
                         -builtLibPath $builtLibPath
-
+    $diff = GetCombinedDiff -syntacticDiff $syntacticDiff -semanticDiff $semanticDiff
     # combine semantic and syntactic differences and get new version
 
     # write api changes to file if appropriate
