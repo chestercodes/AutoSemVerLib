@@ -1,15 +1,3 @@
-# If dll file doesn't exist then stop
-
-# get last version, bail if doesnt exist
-
-# get commits since last version, if none then stop
-
-# if api file doesnt exist then find new version 
-# from semantic changes and write current api to file
-
-# if api file exists then find syntactic diff in version and combine
-# with semantic version diff to find biggest and next version
-
 
 function GetPath($p){
     return [IO.Path]::GetFullPath($p)
@@ -116,26 +104,61 @@ function GetCombinedDiff {
     return "Patch"
 }
 
+function ParseVersionPartAsInt {
+    [CmdletBinding()]
+    param($lastVersion, $part, $tagVersionRegex)
+    $matches = [regex]::Match($lastVersion, $tagVersionRegex)
+    [int]$current = $matches[0].Groups[$part].Value
+    return $current
+}
+
+function GetNewVersionFromOldAndDiff {
+    [CmdletBinding()]
+    param($diff, $lastVersion, $tagVersionRegex)
+    
+    if(-not($lastVersion -match $tagVersionRegex))
+    {
+        Write-Error "Tag '$lastVersion' does not match regex '$tagVersionRegex'"
+        exit 1
+    }
+    
+    $currentMajor = ParseVersionPartAsInt 'Major' $lastVersion $tagVersionRegex
+
+    if($diff -eq "Major"){
+        $newMajor = $currentMajor + 1
+        return "$newMajor.0.0"
+    }
+    
+    $currentMinor = ParseVersionPartAsInt 'Minor' $lastVersion $tagVersionRegex
+    if($diff -eq "Minor"){
+        $newMinor = $currentMinor + 1
+        return "$currentMajor.$newMinor.0"
+    }
+    
+    $currentPatch = ParseVersionPartAsInt 'Patch' $lastVersion $tagVersionRegex
+    if($diff -eq "Patch"){
+        $newPatch = $currentPatch + 1
+        return "$currentMajor.$currentMinor.$newPatch"
+    }
+
+    Write-Error "Cannot perform for diff value '$diff'"
+    exit 1
+}
+
 function Bump {
     [CmdletBinding()]
     param(
-        $projFile,
         $builtLib,
         $currentApiFile,
-        $documentationFile,
         $tagVersionRegex
     )
 
-    $projPath = GetPath $projFile
     $builtLibPath = GetPath $builtLib
     $currentApiPath = GetPath $currentApiFile
-    $documentationPath = GetPath $documentationFile
-
+    
     Write-Verbose "Running auto SemVer with:
-Project file          - $projPath
 Built lib path        - $builtLibPath
 Current api lson file - $currentApiPath
-Documentation file    - $documentationPath
 Tag regex             - $tagVersionRegex"
 
     if(-not(Test-Path $builtLibPath)){
@@ -147,33 +170,30 @@ Tag regex             - $tagVersionRegex"
     
     $commits = GetCommitInfoSinceLastTag -lastVersion $lastVersion
     if($commits.Length -eq 0){
-        Write-Verbose "No commits since last version tag."
+        Write-Host "No commits since last version tag."
         exit 1
     }
     Write-Verbose " Commits found: $commits"
     
-    # save semantic text differences to file, only commits that are feat etc
-    
-    # find the semantic biggest difference
     $semanticDiff = GetSymanticDifferenceFromCommitInfos $commits
 
-    # find the syntactic biggest difference if file exists using the --magnitude
     $syntacticDiff = GetSyntacticDifferenceOrPatch `
                         -currentApiPath $currentApiPath `
                         -builtLibPath $builtLibPath
-    $diff = GetCombinedDiff -syntacticDiff $syntacticDiff -semanticDiff $semanticDiff
-    # combine semantic and syntactic differences and get new version
 
-    # write api changes to file if appropriate
-    #WriteCurrentApiToFile -builtLibPath $builtLibPath -currentApiPath $currentApiPath
+    $diff = GetCombinedDiff -syntacticDiff $syntacticDiff -semanticDiff $semanticDiff
+    
+    $newVersion = GetNewVersionFromOldAndDiff -lastVersion $lastVersion -diff $diff -tagVersionRegex $tagVersionRegex
+    
+    return $newVersion
 }
 
 $versioningDir = "$PSScriptRoot"
 
 $nextVersion = Bump -Verbose `
-    -projFile            "$versioningDir/../src/AutoSemVerLib.csproj" `
     -builtLib            "$versioningDir/../src/bin/Debug/netstandard2.0/AutoSemVerLib.dll" `
     -currentApiFile      "$versioningDir/AutoSemVerLibApi.lson" `
-    -documentationFile   "$versioningDir/Changes.md" `
     -tagVersionRegex     "v(?<Major>`\d+).(?<Minor>`\d+).(?<Patch>`\d+)"
-
+    #-projFile            "$versioningDir/../src/AutoSemVerLib.csproj" `
+    
+Write-Host "$nextVersion"
