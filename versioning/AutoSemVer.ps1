@@ -16,6 +16,7 @@ function GetPath($p){
 }
 
 function WriteCurrentApiToFile {
+    [CmdletBinding()]
     param(
         $builtLibPath,
         $currentApiPath
@@ -26,6 +27,7 @@ function WriteCurrentApiToFile {
 }
 
 function GetLatestTag {
+    [CmdletBinding()]
     param($tagVersionRegex)
     $tags = git tag
     Write-Verbose "All tags: $tags"
@@ -37,6 +39,7 @@ function GetLatestTag {
 }
 
 function CreateCommitInfo {
+    [CmdletBinding()]
     param($commitHash, $commitMessage)
     
     $changeType = "Patch"
@@ -55,6 +58,7 @@ function CreateCommitInfo {
 }
 
 function GetCommitInfoSinceLastTag {
+    [CmdletBinding()]
     param($lastVersion)
     $commitsSinceTagCmd = "git log $lastVersion..head --oneline"
     Write-Verbose "Running command '$commitsSinceTagCmd'"
@@ -70,7 +74,38 @@ function GetCommitInfoSinceLastTag {
     return $commitInfos
 }
 
+function GetSyntacticDifferenceOrPatch {
+    [CmdletBinding()]
+    param($currentApiPath, $builtLibPath)
+    if((Test-Path $currentApiPath)){
+        $cmd = "synver --magnitude $currentApiPath $builtLibPath"
+        Write-Verbose "Running cmd '$cmd'"
+        $magnitude = Invoke-expression -command $cmd
+        return $magnitude
+    } else {
+        Write-Verbose "Previous api file not present at '$currentApiPath'. 
+Can't find version diff with syntactic difference"
+    }
+
+    return "Patch"
+}
+
+function GetSymanticDifferenceFromCommitInfos {
+    [CmdletBinding()]
+    param($commitInfos)
+    $majorCommits = $commitInfos | Where-Object { $_.ChangeType -eq "Major" }
+    if($majorCommits.Length -gt 0){
+        return "Major"
+    }
+    $minorCommits = $commitInfos | Where-Object { $_.ChangeType -eq "Minor" }
+    if($minorCommits.Length -gt 0){
+        return "Minor"
+    }
+    return "Patch"
+}
+
 function Bump {
+    [CmdletBinding()]
     param(
         $projFile,
         $builtLib,
@@ -104,20 +139,25 @@ Tag regex             - $tagVersionRegex"
         exit 0
     }
     Write-Verbose " Commits found: $commits"
+    
+    # save semantic text differences to file, only commits that are feat etc
+    
+    # find the semantic biggest difference
 
-    if(-not(Test-Path $currentApiPath)){
-        Write-Warning "Previous api file not present at '$currentApiPath'. 
-Can't find version diff with syntactic difference, use just semantic differences.
-Write file to current location for next run."
-        #WriteCurrentApiToFile -builtLibPath $builtLibPath -currentApiPath $currentApiPath
-        return
-    }
+    # find the syntactic biggest difference if file exists using the --magnitude
+    $syntacticDiff = GetSyntacticDifferenceOrPatch `
+                        -currentApiPath $currentApiPath `
+                        -builtLibPath $builtLibPath
 
+    # combine semantic and syntactic differences and get new version
+
+    # write api changes to file if appropriate
+    #WriteCurrentApiToFile -builtLibPath $builtLibPath -currentApiPath $currentApiPath
 }
 
 $versioningDir = "$PSScriptRoot"
 
-$nextVersion = Bump `
+$nextVersion = Bump -Verbose `
     -projFile            "$versioningDir/../src/AutoSemVerLib.csproj" `
     -builtLib            "$versioningDir/../src/bin/Debug/netstandard2.0/AutoSemVerLib.dll" `
     -currentApiFile      "$versioningDir/AutoSemVerLibApi.lson" `
