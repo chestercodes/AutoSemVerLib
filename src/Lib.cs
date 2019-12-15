@@ -6,5 +6,9 @@ namespace MyProject
         {
             // Some comment
         }
+        
+        public void MyMethod2(bool boolArg)
+        {
+        }
     }
 }
