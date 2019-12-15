@@ -1,0 +1,15 @@
+
+        
+* MyProject.MyClass
+
+        + (Instance of MyProject.MyClass).MyMethod : 
+                boolArg:System.Boolean
+                -> System.Void
+
+        - (Instance of MyProject.MyClass).MyMethod : 
+                stringArg:System.String
+                -> System.Void
+
+Commits:
+
+0918831 - Patch - Changed MyMethod argument, non backwards compatible. Major change.
