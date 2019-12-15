@@ -4,6 +4,7 @@ namespace MyProject
     {
         public void MyMethod(string stringArg)
         {
+            // Some comment
         }
     }
 }
