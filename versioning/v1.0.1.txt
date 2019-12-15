@@ -1,0 +1,7 @@
+
+
+Commits:
+
+b914223 - Patch - Change build script
+fc8a771 - Patch - Added really useful comment
+b6e5bfc - Patch - chore: Added lines to readme file
