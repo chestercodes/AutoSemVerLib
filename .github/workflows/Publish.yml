@@ -1,0 +1,27 @@
+name: BuildAndPublish
+on:
+  push:
+    branches:
+      - master
+jobs:
+  build:
+    runs-on: [windows-latest]
+    steps:
+    - uses: actions/checkout@v1
+    - name: Setup Nuget.exe
+      uses: warrenbuckley/Setup-Nuget@v1
+      with:
+        nuget-api-key: ${{ secrets.GITHUB_TOKEN }}
+    - name: Run build and publish script
+      env:
+       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+       GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+       TAG_VERSION_REGEX: v(?<Major>\d+).(?<Minor>\d+).(?<Patch>\d+)
+       BUILT_NAME_REL: src/bin/Release/netstandard2.0/MyProject.dll
+       CURRENT_API_NAME: versioning/MyProject.lson
+       GH_USERNAME: chestercodes
+       GH_ORG: chestercodes
+       GH_REPO: AutoSemVerLib
+       GH_EMAIL: chestercodesbot@example.com
+       GH_NAME: chestercodes-bot                            
+      run: powershell -file BuildAndPublish.ps1 -Verbose
