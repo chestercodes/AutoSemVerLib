@@ -1,0 +1,1 @@
+(namespaces ((namespace "MyProject" types ((EnumValue typ (typ "MyProject.MyClass") netType "Class" members ((Method (typ (typ "MyProject.MyClass") instance "Instance" name "MyMethod" result (typ "System.Void") params ((typ (typ "System.String") name "stringArg")))) (Constructor (typ (typ "MyProject.MyClass") params ()))) sumtype "False" baseTyp (typ "System.Object"))))))
