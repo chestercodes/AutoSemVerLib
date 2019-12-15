@@ -1,0 +1,11 @@
+
+        
+* MyProject.MyClass
+
+        + (Instance of MyProject.MyClass).MyMethod2 : 
+                boolArg:System.Boolean
+                -> System.Void
+
+Commits:
+
+a07669e - Patch - Added MyMethod2, enhance functionality. Minor change.
