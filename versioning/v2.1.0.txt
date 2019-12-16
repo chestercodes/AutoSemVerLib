@@ -1,0 +1,6 @@
+
+
+Commits:
+
+d7dfb26 - Patch - fix: Fixed autosemver script
+c00e854 - Minor - feat: Added line to readme. Minor change
