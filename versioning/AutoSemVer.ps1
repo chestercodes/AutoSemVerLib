@@ -101,10 +101,10 @@ function _GetSymanticDifferenceFromCommitInfos {
 function _GetCombinedDiff {
     [CmdletBinding()]
     param($syntacticDiff, $semanticDiff)
-    if($syntacticDiff -eq "Major" -or $synmanticDiff -eq "Major"){
+    if($syntacticDiff -eq "Major" -or $semanticDiff -eq "Major"){
         return "Major"
     }
-    if($syntacticDiff -eq "Minor" -or $synmanticDiff -eq "Minor"){
+    if($syntacticDiff -eq "Minor" -or $semanticDiff -eq "Minor"){
         return "Minor"
     }
     return "Patch"
